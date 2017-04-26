@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3 as lite
+import process
 from collections import namedtuple
 
 DB_FILE = "song_info.sqlite"
@@ -18,9 +19,12 @@ def files_to_table(file_list, file_dir, data_file):
     with open(data_file, 'w') as csv:
         csv.write(",".join(headers))
         csv.write("\n")
-        
+
         for file_info in file_list:
-            with open(os.path.join(file_dir, file_info[-1]+".json")) as f:
+            source_file = os.path.join(process.SONG_FILE_DIR, file_info[-1]+".txt")
+            dest_file = os.path.join(file_dir, file_info[-1]+".json")
+            process.maybe_process(source_file, dest_file)
+            with open(dest_file) as f:
                 data = json.load(f)
             row = create_row(file_info, data)
             csv.write(",".join([str(val) for val in row]))
@@ -32,8 +36,8 @@ def get_file_info(dbfile = DB_FILE):
     cur = con.cursor()
     cur.execute('SELECT * FROM Complete;')
     
-    row = namedtuple('row', [col[0] for col in cur.description])
-    rows = [row(*record) for record in cur.fetchall()]
+    Row = namedtuple('row', [col[0] for col in cur.description])
+    rows = [Row(*record) for record in cur.fetchall()]
     return rows
     
 if __name__ == "__main__":

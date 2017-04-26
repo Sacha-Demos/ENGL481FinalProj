@@ -32,24 +32,26 @@ def should_update(*args):
     source = max([os.path.getmtime(dep) for dep in args[:-1]])
     return dest < source
 
+def maybe_process(source_path, dest_path):
+    if should_update(MODULE_FILE, source_path, dest_path):
+        print("Updating %s from %s." % (dest_path, source_path))
+        with open(source_path) as source_file,\
+             open(dest_path, "w") as dest_file:
+            data = source_file.read()
+            result = process(data)
+            json.dump(result, dest_file)
+            
 file_pat = re.compile( "^(.*)\.txt$" )
 
-def process_all(source_dir, dest_dir):
-    sources = os.listdir(source_dir)
-    for source in sources:
-        m = file_pat.match(source)
+def process_all(source_lst, dest_dir):
+    for source in source_lst:
+        m = file_pat.match(os.path.basename(source))
         if not m:
             continue
-        source_path = os.path.join(source_dir, source)
         dest = "%s.json" % m.group(1)
         dest_path = os.path.join(dest_dir, dest)
-        if should_update(MODULE_FILE, source_path, dest_path):
-            print("Updating %s from %s." % (dest, source))
-            with open(source_path) as source_file,\
-                 open(dest_path, "w") as dest_file:
-                data = source_file.read()
-                result = process(data)
-                json.dump(result, dest_file)
+        maybe_process(source, dest_path)
 
 if __name__ == "__main__":
-    process_all(SONG_FILE_DIR, SONG_DATA_DIR)
+    all_songs = [os.path.join(SONG_FILE_DIR, filename) for filename in os.listdir(SONG_FILE_DIR)]
+    process_all(all_songs, SONG_DATA_DIR)
