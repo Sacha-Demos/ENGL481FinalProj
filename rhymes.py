@@ -5,8 +5,6 @@ from nltk.corpus import cmudict
 
 import lang_util
 
-cmu_dict  = cmudict.dict()
-
 vowels = [u'A', u'E', u'I', u'O', u'U', u'Y']
 
 phoneme_similarity = {
@@ -16,12 +14,43 @@ phoneme_similarity = {
     (u'T', u'D') : .25,
     (u'D', u'V') : .5,
     (u'JH', u'G') : .5,
+    (u'T', u'K') : .5,
+    (u'M', u'N') : .25,
     }
 
 phoneme_finals = {
-    'S' : .5,
+    'S' : .25,
     'Z' : .5,
     }
+
+cmu_dict  = cmudict.dict()
+
+try:
+    print("Attempting to load CMU G2P")
+    import GtoP.g2p_seq2seq.g2p as g2p
+
+    model = g2p.G2PModel("GtoP/g2p-seq2seq-cmudict")
+    model.load_decode_model()
+    def guess(word):
+        toks = model.decode_word(word).split(" ")
+        results = [[]]
+        for tok in toks:
+            if tok[0] in vowels:
+                new_res =[]
+                for res in results:
+                    new_res.append(res+[tok+"0"])
+                    new_res.append(res+[tok+"1"])
+                results = new_res
+            else:
+                for res in results:
+                    res.append(tok)
+        return results
+except:
+    print("Unable to find Grapheme to Phoneme CMU Library.")
+    print("Try running get_GtoP.sh .")
+    def guess(word):
+        print("Default to null rhyme (%s)" % word)
+        return []
 
 class Rhyme(object):
     def __init__(self, word):
@@ -33,8 +62,7 @@ class Rhyme(object):
             if not aprx.keys() == []:
                 self.tails = [max(aprx.items(), key=lambda x:x[1])[0]]
             else:
-                print("Default to null rhyme (%s)" % word)
-                self.tails = []
+                self.tails = get_tails(self.word, proncs=guess(self.word))
 
     def __str__(self):
         lines =["Rhyme(%s){" % self.word]+ [" ".join(tail) for tail in self.tails]+["}"]
@@ -49,7 +77,7 @@ class Rhyme(object):
                 score = lang_util.similarity_score(self.tails[i],\
                                                    otherRhyme.tails[j],\
                                                    similarities=phoneme_similarity,\
-                                                   finals = phoneme_finals.keys(),\
+                                                   finals = phoneme_finals,\
                                                    weight_func=lang_util.weight_func,\
                                                    power=2)
                 if score == 1:
@@ -62,14 +90,15 @@ def normalize(word):
     return word.lower()
 
 tail_cache = {}
-def get_tails(word):
+def get_tails(word, proncs=None):
     word = normalize(word)
     if word in tail_cache:
         return tail_cache[word]
-    try:
-        proncs = cmu_dict[word]
-    except:
-        raise ValueError("Word(%s) not in CMUdict" % word)
+    if proncs is None:
+        try:
+            proncs = cmu_dict[word]
+        except:
+            raise ValueError("Word(%s) not in CMUdict" % word)
     tails = set()
     for pronc in proncs:
         for i in range(1, len(pronc) + 1):
@@ -119,8 +148,10 @@ if __name__ == "__main__":
     print(Rhyme("medicine").similarity(Rhyme("medicines")))
     print(Rhyme("apple").similarity(Rhyme("banana")))
 
-    o = Rhyme("gravity")
-    l = Rhyme("cavity")
+    o = Rhyme("sicko")
+    l = Rhyme("psycho")
     print(o)
     print(l)
     print(o.similarity(l))
+
+    print(guess("boo"))

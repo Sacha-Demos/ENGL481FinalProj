@@ -8,7 +8,7 @@ from rhymes import Rhyme
 source_folder = "example_songs"
 dest_folder = "anots"
 
-colors = ['white', 'red', 'green', 'blue', 'orange' , 'purple', 'grey', 'dark-grey']
+colors = ['white', 'red', 'green', 'blue', 'orange' , 'purple', 'grey', 'dark-grey', 'pink', 'light-blue']
 
 CLUSTER_MIN = .6
 
@@ -46,8 +46,12 @@ def notes(data, f):
     for line in data.split("\n"):
         line=line.strip()
         line_toks = []
+        line = line.replace("'","")
         for tok in word_tokenize(line):
             if len(tok) == 0:
+                continue
+            tok=tok.replace("-","")
+            if not tok.isalnum():
                 continue
             tok = tok.lower()
             if tok in rhymes:

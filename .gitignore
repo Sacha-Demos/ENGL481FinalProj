@@ -90,3 +90,6 @@ ENV/
 
 # Unix cache files
 *~
+
+# GtoP folder (download with script)
+GtoP
