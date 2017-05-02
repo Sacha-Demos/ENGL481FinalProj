@@ -4,7 +4,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
 
 def rotate_lists(data, reverse=False):
-    return zip(*data[::-1 if not reverse else 1])[::-1 if reverse else 1]
+    return list(zip(*data[::-1 if not reverse else 1]))[::-1 if reverse else 1]
 
 def filter_by(filt):
     return lambda x: [i for i, col in enumerate(x) if col.startswith(filt)]

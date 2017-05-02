@@ -6,14 +6,33 @@ import corpus_data
 
 class FeatureSet(object):
     def __init__(self):
-        self.headers = ["stat_length", "stat_line_length"]
+        self.headers = ["stat_length", "stat_line_length", "stat_line_avg_phones",\
+                        "stat_word_phones", "stat_word_avg_chars"]
         
-    def prescan(self, data):
-        pass
+    def prescan(self, data, label):
+        print(label)
     def pack(self):
         pass
     def create_row(self, data):
-        return [ data["lines"], float(sum(data["line_lengths"]))/len(data["line_lengths"]) ]
+        stat_length = data["lines"]
+        stat_line_length = float(sum(data["line_lengths"]))/len(data["line_lengths"])
+        phones = []
+        phones_line = []
+        for line in data["phones"]:
+            sum_line = 0.
+            for word in line:
+                w_avg_phone = float(sum([len(pronc) for pronc in word])) / len(word)
+                sum_line += w_avg_phone
+                phones.append(w_avg_phone)
+            phones_line.append(sum_line / len(line))
+        word_avg_phones = sum(phones) / len(phones)
+        line_avg_phones = sum(phones_line) / len(phones_line)
+        word_chars = []
+        for line in data["song_text"]:
+            for tok in line:
+                word_chars.append(len(tok))
+        word_avg_chars = float(sum(word_chars)) / len(word_chars)
+        return [stat_length, stat_line_length, line_avg_phones, word_avg_phones, word_avg_chars]
 
 class FeatureFile(object):
     def __init__(self, filename, headers):
@@ -30,10 +49,12 @@ class FeatureFile(object):
                 line = ", ".join([str(col) for col in row])+"\n"
                 f.write(line)
             
-def files_to_table(file_list, file_dir, data_file, targets=["Region", "Genre"]):
+def files_to_table(file_list, file_dir, data_file, target):
     fs = FeatureSet()
     source_files = []
     dest_files = []
+
+    target_ind = corpus_data.final_headers.index(target)
 
     for file_info in file_list:
         source_file = os.path.join(process.SONG_FILE_DIR, file_info[-2]+".txt")
@@ -42,26 +63,20 @@ def files_to_table(file_list, file_dir, data_file, targets=["Region", "Genre"]):
         process.maybe_process(source_file, dest_file)
         with open(dest_file) as f:
             data = json.load(f)
-            fs.prescan(f)
+            fs.prescan(f, file_info[target_ind])
         dest_files.append(dest_file)
     fs.pack()
-    feature_files = []
-    target_ind = []
-    for target in targets:
-        target_ind.append( corpus_data.final_headers.index(target) )
-        feature_files.append( FeatureFile("feats_%s.csv" % target.lower(), [target] + fs.headers) )
+    feature_file = FeatureFile("feats_%s.csv" % target.lower(), [target] + fs.headers)
 
     for file_info in file_list:
         with open(dest_file) as f:
             data = json.load(f)
             row = fs.create_row(data)
-        for i in range(len(target_ind)):
-            feature_files[i].add_row([ file_info[target_ind[i]] ] + row)
+            feature_file.add_row([ file_info[target_ind] ] + row)
 
-    for f in feature_files:
-        f.save()
+    feature_file.save()
 
 if __name__ == "__main__":
     file_dir = "song_data"
     file_list = corpus_data.get_attributes()
-    files_to_table(file_list, file_dir, "feature_data.csv")
+    files_to_table(file_list, file_dir, "feature_data.csv", "Region")

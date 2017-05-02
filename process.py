@@ -29,7 +29,7 @@ def process(text_data):
     return {
         "lines" : len(song_text),
         "line_lengths" : [len(line) for line in song_text],
-        "stanzas" : song_text,
+        "song_text" : song_text,
         "phones" : phones,
         "tonality" : tonality(song_text)
         }
