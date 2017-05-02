@@ -6,8 +6,8 @@ import corpus_data
 
 class FeatureSet(object):
     def __init__(self):
-        self.headers = ["length", "line_lengths"]
-
+        self.headers = ["stat_length", "stat_line_length"]
+        
     def prescan(self, data):
         pass
     def pack(self):

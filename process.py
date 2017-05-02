@@ -19,7 +19,7 @@ def process(text_data):
     song_phones = []
     for line in text_data.split("\n"):
         line = line.strip()
-        if "" == line:
+        if "" == line or line[0] == "[":
             continue
         line = line.lower().replace("'", "")
         toks = [tok.replace("-", "").lower() for tok in word_tokenize(line) if len(tok)!=0]

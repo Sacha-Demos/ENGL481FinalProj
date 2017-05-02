@@ -45,8 +45,7 @@ def get_attributes():
     salar = join_tables(ar, sal)
     return salar
 
-def check_songs():
-    s = load_file(song_file)
+def check_songs(s):
     data = []
     for row in s:
         if not os.path.exists(row[2]):
@@ -67,7 +66,8 @@ def diag(attributes):
     print(list(genres))
 
 if __name__ == "__main__":
-    missing = check_songs()
+    s = load_file(song_file)
+    missing = check_songs(s)
     if missing:
         print("missing files:")
         for m in missing:

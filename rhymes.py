@@ -29,12 +29,15 @@ phoneme_finals = {
 cmu_dict  = cmudict.dict()
 
 try:
-    print("Attempting to load CMU G2P")
-    import GtoP.g2p_seq2seq.g2p as g2p
-
-    model = g2p.G2PModel("GtoP/g2p-seq2seq-cmudict")
-    model.load_decode_model()
+    model = None
+    
     def guess(word):
+        global model
+        if model is None:
+            print("Attempting to load CMU G2P")
+            import GtoP.g2p_seq2seq.g2p as g2p
+            model = g2p.G2PModel("GtoP/g2p-seq2seq-cmudict")
+            model.load_decode_model()
         toks = model.decode_word(word).split(" ")
         results = [[]]
         for tok in toks:
