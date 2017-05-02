@@ -63,7 +63,7 @@ def files_to_table(file_list, file_dir, data_file, target):
         process.maybe_process(source_file, dest_file)
         with open(dest_file) as f:
             data = json.load(f)
-            fs.prescan(f, file_info[target_ind])
+            fs.prescan(data, file_info[target_ind])
         dest_files.append(dest_file)
     fs.pack()
     feature_file = FeatureFile("feats_%s.csv" % target.lower(), [target] + fs.headers)
