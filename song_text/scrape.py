@@ -2,6 +2,7 @@ import requests
 import time
 import random
 from bs4 import BeautifulSoup
+import os
 
 #Some sites don't like us scraping :(
 headers = {
@@ -9,15 +10,19 @@ headers = {
 }
 
 def grab_lyrics(urls, delay=10, random_wait=5):
+	url_count = 0
 	for url in urls:
 		time.sleep(delay + random.randint(1, random_wait))
-		print("Requesting: " + url)
+		print("Requesting[" + str(url_count) +"]: " + url)
 		r = requests.get(url, headers=headers)
 		r.encoding = "utf-8"
-		f = open(url.split('/')[-1], "a")
+		filename = ('/').join(url.split('/')[-2:]).replace(".html",".txt")
+		os.makedirs(url.split('/')[-2], exist_ok=True)
+		f = open(filename, "w")
 		f.write(parse_azlyrics(r.text))
 		f.close()
 		print("Finished saving file")
+		url_count += 1
 
 
 def parse_genius(page_text):
