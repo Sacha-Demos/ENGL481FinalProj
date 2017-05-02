@@ -2,24 +2,36 @@ import json
 import re
 import os
 
-SONG_FILE_DIR = "songs"
+from nltk import word_tokenize
+
+from rhymes import Rhyme, get_phones
+
+SONG_FILE_DIR = "song_text"
 SONG_DATA_DIR = "song_data"
 
 MODULE_FILE = __file__
 
+def tonality(song_text):
+    return {"one" : 1}
+
 def process(text_data):
-    stanzas = [ [] ]
+    song_text = []
+    song_phones = []
     for line in text_data.split("\n"):
         line = line.strip()
         if "" == line:
-            if len( stanzas[-1] ) > 0:
-                stanzas.append(list())
             continue
-        toks = line.lower().split(" ")
-        stanzas[-1].append(toks)
+        line = line.lower().replace("'", "")
+        toks = [tok.replace("-", "").lower() for tok in word_tokenize(line) if len(tok)!=0]
+        phones = [get_phones(tok) for tok in toks]
+        song_text.append(toks)
+        song_phones.append(phones)
     return {
-        "len" : len(text_data),
-        "stanzas" : stanzas
+        "lines" : len(song_text),
+        "line_lengths" : [len(line) for line in song_text],
+        "stanzas" : song_text,
+        "phones" : phones,
+        "tonality" : tonality(song_text)
         }
 
 def should_update(*args):

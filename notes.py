@@ -3,42 +3,12 @@ from collections import defaultdict
 
 from nltk import word_tokenize
 
-from rhymes import Rhyme
+from rhymes import Rhyme, cluster
 
 source_folder = "example_songs"
 dest_folder = "anots"
 
 colors = ['white', 'red', 'green', 'blue', 'orange' , 'purple', 'grey', 'dark-grey', 'pink', 'light-blue']
-
-CLUSTER_MIN = .6
-
-def cluster(rhyme_list):
-    rhyme_dists = []
-    for i in range(len(rhyme_list)):
-        for j in range(i + 1, len(rhyme_list)):
-            score = rhyme_list[i].similarity(rhyme_list[j])
-            rhyme_dists.append( (rhyme_list[i].word, rhyme_list[j].word, score) )
-    rhyme_dists.sort(key = lambda x:0 - x[-1])
-    clusts = []
-    for one, two, score in rhyme_dists:
-        if score <= CLUSTER_MIN:
-            break
-        onesets = [clust for clust in clusts if one in clust]
-        oneset = onesets[0] if len(onesets)>0 else [one]
-        twosets = [clust for clust in clusts if two in clust]
-        twoset = twosets[0] if len(twosets)>0 else [two]
-        if twoset in clusts:
-            clusts.remove(twoset)
-        if oneset in clusts:
-            clusts.remove(oneset)
-        clusts.append(list(set(oneset + twoset)))
-    clusters = {}
-    count = 1
-    for clust in clusts:
-        for word in clust:
-            clusters[word] = count
-        count += 1
-    return clusters
 
 def notes(data, f):
     tokens = []
