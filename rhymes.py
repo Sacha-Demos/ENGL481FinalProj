@@ -1,4 +1,5 @@
 from collections import defaultdict
+import itertools
 
 import nltk
 from nltk.corpus import cmudict
@@ -7,19 +8,26 @@ import lang_util
 
 
 CLUSTER_MIN = .6
+APPROX_MIN = 10
 
 vowels = [u'A', u'E', u'I', u'O', u'U', u'Y']
 
-phoneme_similarity = {
-    (u'S', u'Z') : .5,
-    (u'Z', u'ZH') : .5,
-    (u'S', u'ZH') : .25,
-    (u'T', u'D') : .25,
-    (u'D', u'V') : .5,
-    (u'JH', u'G') : .5,
-    (u'T', u'K') : .5,
-    (u'M', u'N') : .25,
-    }
+phoneme_similarity = {}
+
+stops = [('P', 'B'), ('T','D'), ('K', 'G')]
+fricatives = [('F','V'), ('TH', 'DH'), ('S', 'Z', 'SH' , 'ZH')]
+nasals = [('M', 'N'), ('NG',)]
+
+for row in [stops, fricatives, nasals]:
+    total = []
+    for cross in itertools.product(*row):
+        for combo in itertools.combinations(cross, 2):
+            phoneme_similarity[combo] = .75
+    for group in row:
+        if len(group) <= 1:
+            continue
+        for combo in itertools.combinations(group, 2):
+            phoneme_similarity[combo] = .25
 
 phoneme_finals = {
     'S' : .25,
@@ -71,7 +79,12 @@ class Rhyme(object):
         except:
             aprx = get_approx(self.word)
             if not aprx.keys() == []:
-                self.tails = [max(aprx.items(), key=lambda x:x[1])[0]]
+                item = max(aprx.items(), key=lambda x:x[1])
+                if item[1] > APPROX_MIN:
+                    self.tails = [item[0]]
+                else:
+                    print(self.word)
+                    self.tails = get_tails(self.word, proncs=guess(self.word))
             else:
                 self.tails = get_tails(self.word, proncs=guess(self.word))
 
@@ -165,28 +178,26 @@ def cluster(rhyme_list):
         count += 1
     return clusters
 
-if __name__ == "__main__":
-    word = "orange"
-    wordR = Rhyme(word)
-    print(wordR)
+def all_rhymes(word):
     word_scores = []
+    wordR = Rhyme(word)
     for w in cmu_dict.keys():
         wR = Rhyme(w)
         score = wordR.similarity(wR)
         if score > 0:
             word_scores.append( (w, score, wR.tails) )
-    res = sorted(word_scores, key = lambda x:x[1])[-100:]
-    for l in res:
-        print(l)
+    return sorted(word_scores, key = lambda x:x[1])
+
+if __name__ == "__main__":
+    word = Rhyme("orange")
+    print(word)
 
 
     print(Rhyme("medicine").similarity(Rhyme("medicines")))
     print(Rhyme("apple").similarity(Rhyme("banana")))
 
-    o = Rhyme("sicko")
-    l = Rhyme("psycho")
+    o = Rhyme("eraser")
+    l = Rhyme("stapler")
     print(o)
     print(l)
     print(o.similarity(l))
-
-    print(guess("boo"))

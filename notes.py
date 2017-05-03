@@ -8,7 +8,7 @@ from rhymes import Rhyme, cluster
 source_folder = "example_songs"
 dest_folder = "anots"
 
-colors = ['white', 'red', 'green', 'blue', 'orange' , 'purple', 'grey', 'dark-grey', 'pink', 'light-blue']
+colors = ['white', 'red', 'green', 'blue', 'orange' , 'purple', 'grey', 'dark-grey', 'pink', 'light-blue', 'light-yellow', 'light-grey']
 
 def notes(data, f):
     tokens = []
