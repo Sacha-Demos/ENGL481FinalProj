@@ -9,7 +9,8 @@ import corpus_data
 class FeatureSet(object):
     def __init__(self):
         self.headers = ["stat_length", "stat_line_length", "stat_line_avg_phones",\
-                        "stat_word_phones", "stat_word_avg_chars"]
+                        "stat_word_phones", "stat_word_avg_chars", "tonality_end_rhyme_mean"
+        ]
         self.distributions = {}
         self.total_distribution = {}
         self.number_of_files = 0
@@ -85,7 +86,8 @@ class FeatureSet(object):
             for tok in line:
                 word_chars.append(len(tok))
         word_avg_chars = float(sum(word_chars)) / len(word_chars)
-        return [stat_length, stat_line_length, line_avg_phones, word_avg_phones, word_avg_chars]
+        tonality = data["tonality"]
+        return [stat_length, stat_line_length, line_avg_phones, word_avg_phones, word_avg_chars, tonality["end_rhyme_mean"]]
 
 class FeatureFile(object):
     def __init__(self, filename, headers):

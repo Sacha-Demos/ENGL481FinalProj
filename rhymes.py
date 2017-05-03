@@ -48,6 +48,9 @@ try:
             model.load_decode_model()
         toks = model.decode_word(word).split(" ")
         results = [[]]
+        if len(toks) == 1:
+            if toks[0] == '':
+                return []
         for tok in toks:
             if tok[0] in vowels:
                 new_res =[]

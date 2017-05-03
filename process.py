@@ -4,7 +4,7 @@ import os
 
 from nltk import word_tokenize
 
-from rhymes import Rhyme, get_phones
+from rhymes import Rhyme, get_phones, cluster
 
 SONG_FILE_DIR = "song_text"
 SONG_DATA_DIR = "song_data"
@@ -12,7 +12,31 @@ SONG_DATA_DIR = "song_data"
 MODULE_FILE = __file__
 
 def tonality(song_text):
-    return {"one" : 1}
+    song_rhymes = []
+    rhyme_clusters = []
+    end_rhyme = []
+    for line in song_text:
+        song_rhymes.append([Rhyme(word) for word in line])
+        rhyme_clusters.append([None for word in line])
+    for i in range(len(song_rhymes) - 2):
+        line_one = song_rhymes[i]
+        line_two = song_rhymes[i+1]
+        line_three = song_rhymes[i+2]
+
+        end_rhyme.append(max(line_one[-1].similarity(line_two[-1]),\
+                             line_two[-1].similarity(line_three[-1]),\
+                             line_one[-1].similarity(line_three[-1])))
+        
+        rhymes = list(set(line_one + line_two + line_three))
+        clusts = cluster(rhymes)
+        
+        rhyme_line_one = [clusts[w] if w in clusts else None for w in song_text[i]]
+        rhyme_line_two = [clusts[w] if w in clusts else None for w in song_text[i+1]]
+        rhyme_line_three = [clusts[w] if w in clusts else None for w in song_text[i+1]]
+    data = {
+        "end_rhyme_mean" : sum(end_rhyme)
+        }
+    return data
 
 def process(text_data):
     song_text = []
@@ -26,6 +50,7 @@ def process(text_data):
         phones = [get_phones(tok) for tok in toks]
         song_text.append(toks)
         song_phones.append(phones)
+    tonality(song_text)
     return {
         "lines" : len(song_text),
         "line_lengths" : [len(line) for line in song_text],
