@@ -1,6 +1,8 @@
 import json
 import os
 import process
+import math
+from nltk import FreqDist, RegexpTokenizer
 
 import corpus_data
 
@@ -8,10 +10,61 @@ class FeatureSet(object):
     def __init__(self):
         self.headers = ["stat_length", "stat_line_length", "stat_line_avg_phones",\
                         "stat_word_phones", "stat_word_avg_chars"]
+        self.distributions = {}
+        self.total_distribution = {}
+        self.number_of_files = 0
+        self.document_frequencies = {}
         
     def prescan(self, data, label):
+        tokens = []
+        for line in data['song_text']:
+            tokens += line
+
+        # Hack to get rid of punctuation tokens
+        tokenizer = RegexpTokenizer(r'\w+')
+        tokens = tokenizer.tokenize((' ').join(tokens))
+
+        if label not in self.distributions.keys():
+            self.distributions[label] = {}
+
+        dist = FreqDist(tokens)
+
+        for key in dist.keys():
+            if key not in self.distributions[label].keys():
+                self.distributions[label][key] = 0
+            if key not in self.document_frequencies.keys():
+                self.document_frequencies[key] = 0
+            self.distributions[label][key] += dist[key]
+            self.document_frequencies[key] += 1
+
+        self.number_of_files += 1
+
         print(label)
     def pack(self):
+        # Make overall distribution
+        for dist in self.distributions.keys():
+            for key in self.distributions[dist].keys():
+                if key not in self.total_distribution:
+                    self.total_distribution[key] = 0
+                self.total_distribution[key] += self.distributions[dist][key]
+
+        # Find top word for each tag
+        for dist in self.distributions.keys():
+            dist_word_count = sum(self.distributions[dist].values())
+            idf_values = {}
+            for key in self.distributions[dist].keys():
+                tf = float(self.distributions[dist][key])/dist_word_count
+                idf = math.log(float(self.number_of_files)/(1 + self.document_frequencies[key]))
+                idf_values[key] = tf * idf
+
+            print("Top words for " + dist)
+            for key in sorted(idf_values, key=idf_values.get, reverse=False)[:5]:
+                print(key + " - " + str(idf_values[key]))
+
+
+        #topkeys = sorted(self.distributions['WC'], key=self.distributions['WC'].get, reverse=True)[:5]
+        #print(topkeys)
+        #print(self.distributions['WC'])
         pass
     def create_row(self, data):
         stat_length = data["lines"]
