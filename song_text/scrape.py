@@ -53,3 +53,39 @@ def get_azlyrics_song_urls(artist_url):
 			links.append(a['href'])
 	links = [link.replace("..", "http://www.azlyrics.com") for link in links]
 	return links
+
+def get_azlyrics_album_data(artist_urls, delay=10, random_wait=5):
+	album_data = [["Name", "Artist", "ReleaseYear"]]
+	song_data = [["Name", "Album", "Filename", "Url"]]
+	for artist_url in artist_urls:
+		time.sleep(delay + random.randint(1, random_wait))
+		r = requests.get(artist_url, headers=headers)
+		soup = BeautifulSoup(r.text, "html.parser")
+		#artist = (' ').join(soup.find_all('strong')[0].text.split()[:-1])
+		artist = soup.find_all('meta', attrs={"name": "keywords"})[0]['content'].split(',')[0]
+		elements = soup.find_all('div', attrs={"id": "listAlbum"})[0].findChildren()
+		album = "unknown " + artist
+		release = "unk"
+		for element in elements:
+			if(element.name == 'div'):
+				if element.has_attr("class"):
+					children = element.find_all('b')
+					if(len(children) == 0):
+						album = "Misc: " + artist
+						release = "unk"
+					else:
+						album = children[0].text.replace('"','').replace(',','.')
+						release = element.text.split()[-1].replace("(","").replace(")","")
+					album_data.append([album, artist, release])
+			elif(element.name == 'a'):
+				if element.has_attr("href"):
+					url = element["href"].replace("..", "http://www.azlyrics.com")
+					filename = ('/').join(url.split('/')[-2:]).replace(".html","")
+					song_data.append([element.text.replace(",","."), album, filename, url])
+	f = open("album_data.csv", "w")
+	f.write(("\n").join([(", ").join(row) for row in album_data]))
+	f.close()
+
+	f = open("song_data.csv", "w")
+	f.write(("\n").join([(", ").join(row) for row in song_data]))
+	f.close()
