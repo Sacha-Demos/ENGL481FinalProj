@@ -12,8 +12,10 @@ def filter_by(filt):
 class classifier(object):
     def __init__(self):
         self.classifiers = [
-            [tree.DecisionTreeClassifier(), filter_by("stat")],
-            [RandomForestClassifier(), None]
+            [tree.DecisionTreeClassifier(), filter_by("stat"), "Statistics"],
+            [tree.DecisionTreeClassifier(), filter_by("tfidf"), "TF IDF"],
+            [tree.DecisionTreeClassifier(), filter_by("tonality"), "Tonality"],
+            [RandomForestClassifier(), None, "All In One"]
             ]
         self.final_class = tree.DecisionTreeClassifier()
 
@@ -37,7 +39,7 @@ class classifier(object):
 
     def predict(self, data, return_predicts = True):
         predicts = []
-        for model, filt in self.classifiers:
+        for model, filt, name in self.classifiers:
             if filt:
                 filtered_data = [[row[i] for i in filt] for row in data]
             else:
@@ -56,7 +58,7 @@ class classifier(object):
 def test(model, data, labels):
     finals, predicts = model.predict(data, return_predicts = True)
     headers = ["Actual", "Final Prediction"]
-    for classy, filt in model.classifiers:
+    for classy, filt, name in model.classifiers:
         headers.append(type(classy).__name__)
     with open("results.csv", "w") as f:
         f.write(", ".join(headers) + "\n")
@@ -65,11 +67,11 @@ def test(model, data, labels):
             f.write(", ".join(row) + "\n")
     print("Accuracy"),
     print(sum([1. if final==label else 0. for final, label in zip(finals, labels)])/ len(labels))
-    print("Accuracies")
+    print("Accuracies :")
     for i, m in enumerate(rotate_lists(predicts, reverse=True)):
-        print(type(model.classifiers[i][0]).__name__),
+        print(model.classifiers[i][2] + " : " + type(model.classifiers[i][0]).__name__),
         acc = sum([1. if final==label else 0. for final, label in zip(m, labels)])/ len(labels)
-        print(("" if acc==1. else " ")+ "%.2f perc" % (acc*100))
+        print("\t" + ("" if acc==1. else " ")+ "%.2f perc" % (acc*100))
 
 filename = "feats_region.csv"
 data = []

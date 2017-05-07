@@ -3,20 +3,26 @@ import os
 import process
 import math
 from nltk import FreqDist, RegexpTokenizer
+from nltk.corpus import stopwords
 
 import corpus_data
+
+stop = set(stopwords.words('english'))
+
+TF_IDF_COUNT = 10
 
 class FeatureSet(object):
     def __init__(self):
         self.headers = ["stat_length", "stat_line_length", "stat_line_avg_phones",\
-                        "stat_word_phones", "stat_word_avg_chars", "tonality_end_rhyme_mean"
+                        "stat_word_phones", "stat_word_avg_chars", "tonality_end_rhyme_mean",\
+                        "tonality_end_rhyme_stdev", "tonality_repeat_rhyme_mean", "tonality_repeat_rhyme_stdev"
         ]
         self.distributions = {}
         self.total_distribution = {}
         self.number_of_files = 0
         self.document_frequencies = {}
-        
-    def prescan(self, data, label):
+
+    def get_freq(self, data):
         tokens = []
         for line in data['song_text']:
             tokens += line
@@ -25,12 +31,16 @@ class FeatureSet(object):
         tokenizer = RegexpTokenizer(r'\w+')
         tokens = tokenizer.tokenize((' ').join(tokens))
 
+        return FreqDist(tokens)
+    def prescan(self, data, label):
+        dist = self.get_freq(data)
+
         if label not in self.distributions.keys():
             self.distributions[label] = {}
-
-        dist = FreqDist(tokens)
-
+        
         for key in dist.keys():
+            if key in stop:
+                continue
             if key not in self.distributions[label].keys():
                 self.distributions[label][key] = 0
             if key not in self.document_frequencies.keys():
@@ -40,7 +50,6 @@ class FeatureSet(object):
 
         self.number_of_files += 1
 
-        print(label)
     def pack(self):
         # Make overall distribution
         for dist in self.distributions.keys():
@@ -59,14 +68,19 @@ class FeatureSet(object):
                 idf_values[key] = tf * idf
 
             print("Top words for " + dist)
-            for key in sorted(idf_values, key=idf_values.get, reverse=False)[:5]:
+            for key in sorted(idf_values, key=idf_values.get, reverse=True)[:TF_IDF_COUNT]:
                 print(key + " - " + str(idf_values[key]))
 
-
-        #topkeys = sorted(self.distributions['WC'], key=self.distributions['WC'].get, reverse=True)[:5]
-        #print(topkeys)
-        #print(self.distributions['WC'])
+        good_words = set()
+        for label in self.distributions.keys():
+            topwords = sorted(self.distributions[label], key=self.distributions[label].get, reverse=True)[:TF_IDF_COUNT]
+            for w in topwords:
+                good_words.add(w)
+        self.tf_idf_features = list(good_words)
+        for w in self.tf_idf_features:
+            self.headers.append("tfidf_"+w)
         pass
+    
     def create_row(self, data):
         stat_length = data["lines"]
         stat_line_length = float(sum(data["line_lengths"]))/len(data["line_lengths"])
@@ -86,8 +100,14 @@ class FeatureSet(object):
             for tok in line:
                 word_chars.append(len(tok))
         word_avg_chars = float(sum(word_chars)) / len(word_chars)
-        tonality = data["tonality"]
-        return [stat_length, stat_line_length, line_avg_phones, word_avg_phones, word_avg_chars, tonality["end_rhyme_mean"]]
+
+        stats = [stat_length, stat_line_length, line_avg_phones, word_avg_phones, word_avg_chars]
+        
+        tonality = [data["tonality"][key] for key in ["end_rhyme_mean", "end_rhyme_stdev", "repeat_rhyme_mean", "repeat_rhyme_stdev"]]
+        
+        dist = self.get_freq(data)
+        tfidf = [dist[w] for w in self.tf_idf_features]
+        return stats  + tonality + tfidf
 
 class FeatureFile(object):
     def __init__(self, filename, headers):
@@ -113,6 +133,8 @@ def files_to_table(file_list, file_dir, data_file, target):
 
     for file_info in file_list:
         source_file = os.path.join(process.SONG_FILE_DIR, file_info[-2]+".txt")
+        if not os.path.exists(source_file):
+            source_file = os.path.join(process.SONG_FILE_DIR, file_info[-2]+".html")
         source_files.append( source_file )
         dest_file = os.path.join(file_dir, file_info[-2]+".json")
         process.maybe_process(source_file, dest_file)
@@ -124,6 +146,7 @@ def files_to_table(file_list, file_dir, data_file, target):
     feature_file = FeatureFile("feats_%s.csv" % target.lower(), [target] + fs.headers)
 
     for file_info in file_list:
+        dest_file = os.path.join(file_dir, file_info[-2]+".json")
         with open(dest_file) as f:
             data = json.load(f)
             row = fs.create_row(data)
