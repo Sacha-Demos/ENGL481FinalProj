@@ -59,7 +59,6 @@ def diag(attributes):
     for row in attributes:
         regions.add(row[1])
         genres.add(row[2])
-        int(row[4])
     print("%d Regions" % len(regions))
     print(list(regions))
     print("%d Genres" % len(genres))

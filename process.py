@@ -3,7 +3,6 @@ import re
 import os
 import numpy
 
-
 from nltk import word_tokenize
 
 from rhymes import Rhyme, get_phones, cluster
