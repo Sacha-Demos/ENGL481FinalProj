@@ -9,7 +9,7 @@ import corpus_data
 
 stop = set(stopwords.words('english'))
 
-TF_IDF_COUNT = 10
+TF_IDF_COUNT = 100
 
 class FeatureSet(object):
     def __init__(self):
@@ -24,7 +24,7 @@ class FeatureSet(object):
 
     def get_freq(self, data):
         tokens = []
-        for line in data['song_text']:
+        for line in data['stemmed']:
             tokens += line
 
         # Hack to get rid of punctuation tokens
@@ -79,27 +79,27 @@ class FeatureSet(object):
         self.tf_idf_features = list(good_words)
         for w in self.tf_idf_features:
             self.headers.append("tfidf_"+w)
-        pass
     
     def create_row(self, data):
         stat_length = data["lines"]
-        stat_line_length = float(sum(data["line_lengths"]))/len(data["line_lengths"])
+        stat_line_length = float(sum(data["line_lengths"])) / max(len(data["line_lengths"]), 1)
         phones = []
         phones_line = []
         for line in data["phones"]:
             sum_line = 0.
             for word in line:
-                w_avg_phone = float(sum([len(pronc) for pronc in word])) / len(word)
-                sum_line += w_avg_phone
-                phones.append(w_avg_phone)
-            phones_line.append(sum_line / len(line))
-        word_avg_phones = sum(phones) / len(phones)
-        line_avg_phones = sum(phones_line) / len(phones_line)
+                if len(word) > 0:
+                    w_avg_phone = float(sum([len(pronc) for pronc in word])) / len(word)
+                    sum_line += w_avg_phone
+                    phones.append(w_avg_phone)
+            phones_line.append((sum_line / len(line)) if len(line) else 0)
+        word_avg_phones = (sum(phones) / len(phones)) if len(phones) else 0
+        line_avg_phones = (sum(phones_line) / len(phones_line)) if len(phones_line) else 0
         word_chars = []
         for line in data["song_text"]:
             for tok in line:
                 word_chars.append(len(tok))
-        word_avg_chars = float(sum(word_chars)) / len(word_chars)
+        word_avg_chars = (float(sum(word_chars)) / len(word_chars)) if len(word_chars) else 0
 
         stats = [stat_length, stat_line_length, line_avg_phones, word_avg_phones, word_avg_chars]
         
@@ -123,7 +123,7 @@ class FeatureFile(object):
             for row in self.data:
                 line = ", ".join([str(col) for col in row])+"\n"
                 f.write(line)
-            
+
 def files_to_table(file_list, file_dir, data_file, target):
     fs = FeatureSet()
     source_files = []
@@ -131,6 +131,7 @@ def files_to_table(file_list, file_dir, data_file, target):
 
     target_ind = corpus_data.final_headers.index(target)
 
+    print("Updating Files:")
     for file_info in file_list:
         source_file = os.path.join(process.SONG_FILE_DIR, file_info[-2]+".txt")
         if not os.path.exists(source_file):
@@ -138,6 +139,8 @@ def files_to_table(file_list, file_dir, data_file, target):
         source_files.append( source_file )
         dest_file = os.path.join(file_dir, file_info[-2]+".json")
         process.maybe_process(source_file, dest_file)
+        if not os.path.exists(dest_file):
+            continue
         with open(dest_file) as f:
             data = json.load(f)
             fs.prescan(data, file_info[target_ind])
@@ -145,8 +148,11 @@ def files_to_table(file_list, file_dir, data_file, target):
     fs.pack()
     feature_file = FeatureFile("feats_%s.csv" % target.lower(), [target] + fs.headers)
 
+    print("Vectorizing")
     for file_info in file_list:
         dest_file = os.path.join(file_dir, file_info[-2]+".json")
+        if not os.path.exists(dest_file):
+            continue
         with open(dest_file) as f:
             data = json.load(f)
             row = fs.create_row(data)

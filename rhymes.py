@@ -36,9 +36,10 @@ phoneme_finals = {
 
 cmu_dict  = cmudict.dict()
 
+model = None
+guess_cache = {}
+MAX_MULT = 10
 try:
-    model = None
-    
     def guess(word):
         global model
         if model is None:
@@ -46,21 +47,26 @@ try:
             import GtoP.g2p_seq2seq.g2p as g2p
             model = g2p.G2PModel("GtoP/g2p-seq2seq-cmudict")
             model.load_decode_model()
+        if word in guess_cache:
+            return guess_cache[word]
         toks = model.decode_word(word).split(" ")
         results = [[]]
         if len(toks) == 1:
             if toks[0] == '':
+                guess_cache[word] = []
                 return []
         for tok in toks:
             if tok[0] in vowels:
                 new_res =[]
                 for res in results:
                     new_res.append(res+[tok+"0"])
-                    new_res.append(res+[tok+"1"])
+                    if len(results) < 10:
+                        new_res.append(res+[tok+"1"])
                 results = new_res
             else:
                 for res in results:
                     res.append(tok)
+        guess_cache[word] = results
         return results
 except:
     print("Unable to find Grapheme to Phoneme CMU Library.")
@@ -72,7 +78,7 @@ except:
 def get_phones(word):
     if word in cmu_dict:
         return cmu_dict[word]
-    return[]
+    return guess(word)
     
 class Rhyme(object):
     def __init__(self, word):
@@ -86,7 +92,6 @@ class Rhyme(object):
                 if item[1] > APPROX_MIN:
                     self.tails = [item[0]]
                 else:
-                    print(self.word)
                     self.tails = get_tails(self.word, proncs=guess(self.word))
             else:
                 self.tails = get_tails(self.word, proncs=guess(self.word))
@@ -112,7 +117,13 @@ class Rhyme(object):
                 elif score > bestscore:
                     bestscore = score
         return bestscore
-
+    
+    def __eq__(self, other):
+        return self.word == other.word
+    def __ne__(self, other):
+        return (not self.__eq__(other))
+    def __hash__(self):
+        return hash(self.word)
 tail_cache = {}
 def get_tails(word, proncs=None):
     if word in tail_cache:
@@ -204,3 +215,5 @@ if __name__ == "__main__":
     print(o)
     print(l)
     print(o.similarity(l))
+
+    print(get_phones("blargh"))

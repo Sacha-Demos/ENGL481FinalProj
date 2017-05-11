@@ -1,0 +1,6 @@
+Accuracy 0.578082191781
+Accuracies :
+Statistics : RandomForestClassifier 	 47.95 perc
+TF IDF : RandomForestClassifier 	 56.44 perc
+Tonality : RandomForestClassifier 	 44.11 perc
+All In One : RandomForestClassifier 	 60.00 perc

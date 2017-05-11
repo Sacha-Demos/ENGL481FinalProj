@@ -48,7 +48,8 @@ def get_attributes():
 def check_songs(s):
     data = []
     for row in s:
-        if not os.path.exists(row[2]):
+        p = os.path.join("song_text", row[2])
+        if not (os.path.exists(p+".txt") or os.path.exists(p+".html")):
             data.append(row)
     return data
 

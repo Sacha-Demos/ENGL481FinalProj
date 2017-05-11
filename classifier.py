@@ -3,6 +3,9 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
 
+import numpy as np
+import random
+
 def rotate_lists(data, reverse=False):
     return list(zip(*data[::-1 if not reverse else 1]))[::-1 if reverse else 1]
 
@@ -12,9 +15,9 @@ def filter_by(filt):
 class classifier(object):
     def __init__(self):
         self.classifiers = [
-            [tree.DecisionTreeClassifier(), filter_by("stat"), "Statistics"],
-            [tree.DecisionTreeClassifier(), filter_by("tfidf"), "TF IDF"],
-            [tree.DecisionTreeClassifier(), filter_by("tonality"), "Tonality"],
+            [RandomForestClassifier(), filter_by("stat"), "Statistics"],
+            [RandomForestClassifier(), filter_by("tfidf"), "TF IDF"],
+            [RandomForestClassifier(), filter_by("tonality"), "Tonality"],
             [RandomForestClassifier(), None, "All In One"]
             ]
         self.final_class = tree.DecisionTreeClassifier()
@@ -32,6 +35,11 @@ class classifier(object):
                 class_data[1] = filt_i
             else:
                 filtered_data = data
+            for i, row in enumerate(filtered_data[:]):
+                if not np.all(np.isfinite(row)):
+                   print("tossed"),
+                   print(row)
+                   filtered_data.remove(row)
             model.fit(filtered_data, ilabels)
             predicts.append(model.predict(filtered_data))
         predicts = rotate_lists(predicts)
@@ -80,8 +88,28 @@ with open(filename) as f:
     headers = [tok.strip() for tok in f.readline().split(",")]
     for l in f:
         toks = [tok.strip() for tok in l.split(",")]
-        data.append(toks[1:])
+        data.append([float(tok) for tok in toks[1:]])
         labels.append(toks[0])
+
+
 c = classifier()
-c.train(data, labels, headers[1:])
-test(c, data, labels)
+train_data = []
+train_labels = []
+
+test_data = []
+test_labels = []
+
+size = len(data)
+split_ind = int(float(size * 80) / 100)
+
+splits = range(size)
+random.shuffle(splits)
+for i in splits[:split_ind]:
+    train_data.append(data[i])
+    train_labels.append(labels[i])
+for i in splits[split_ind:]:
+    test_data.append(data[i])
+    test_labels.append(labels[i])
+
+c.train(train_data, train_labels, headers[1:])
+test(c, test_data, test_labels)
